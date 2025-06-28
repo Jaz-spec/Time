@@ -12,7 +12,35 @@ class TimeTrackDB:
     
     def init_db(self):
         """Initialize database with required tables"""
-        pass
+        with self.get_connection() as conn:
+            # Time entries table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS time_entries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project TEXT NOT NULL,
+                    sub_project TEXT,
+                    tasks TEXT,
+                    start_time TIMESTAMP NOT NULL,
+                    end_time TIMESTAMP,
+                    duration INTEGER,
+                    directory TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # Directory mappings table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS directory_mappings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    directory_path TEXT UNIQUE NOT NULL,
+                    project_name TEXT NOT NULL,
+                    auto_detected BOOLEAN DEFAULT TRUE,
+                    detection_method TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.commit()
     
     def get_connection(self):
         """Get database connection"""
