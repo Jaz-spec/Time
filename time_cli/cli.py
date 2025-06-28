@@ -1,4 +1,8 @@
 import click
+import os
+from pathlib import Path
+from .database import TimeTrackDB
+from .utils import detect_project_from_directory, format_duration
 
 @click.group()
 def cli():
@@ -9,17 +13,83 @@ def cli():
 @click.argument('args', nargs=-1)
 def start(args):
     """Start timer with optional project and tasks"""
-    click.echo("Timer started (placeholder)")
+    db = TimeTrackDB()
+    current_dir = str(Path.cwd())
+    
+    # Parse arguments
+    project = None
+    sub_project = None
+    tasks = []
+    
+    if args:
+        # First argument might be project or project:sub_project
+        first_arg = args[0]
+        if ':' in first_arg:
+            project, sub_project = first_arg.split(':', 1)
+        else:
+            project = first_arg
+        
+        # Remaining arguments are tasks
+        tasks = list(args[1:])
+    
+    # If no project specified, auto-detect from directory
+    if not project:
+        project = detect_project_from_directory()
+    
+    # Start the timer
+    session_id = db.start_timer(project, sub_project, tasks, current_dir)
+    
+    # Build output message
+    project_display = f"{project}:{sub_project}" if sub_project else project
+    if tasks:
+        tasks_display = " [" + ", ".join(tasks) + "]"
+    else:
+        tasks_display = ""
+    
+    click.echo(f"Timer started for {project_display}{tasks_display}")
+    click.echo(f"Session ID: {session_id}")
 
 @cli.command()
 def stop():
     """Stop current timer"""
-    click.echo("Timer stopped (placeholder)")
+    db = TimeTrackDB()
+    
+    # Check if there's an active session
+    active_session = db.get_active_session()
+    if not active_session:
+        click.echo("No active timer session found")
+        return
+    
+    # Stop the timer
+    duration = db.stop_timer()
+    
+    if duration:
+        project_display = f"{active_session['project']}:{active_session['sub_project']}" if active_session['sub_project'] else active_session['project']
+        tasks_display = " [" + ", ".join(active_session['tasks']) + "]" if active_session['tasks'] else ""
+        
+        click.echo(f"Timer stopped for {project_display}{tasks_display}")
+        click.echo(f"Duration: {format_duration(duration)}")
+    else:
+        click.echo("Failed to stop timer")
 
 @cli.command()
 def status():
     """Show current session and elapsed time"""
-    click.echo("Status (placeholder)")
+    db = TimeTrackDB()
+    
+    active_session = db.get_active_session()
+    
+    if not active_session:
+        click.echo("No active timer session")
+        return
+    
+    project_display = f"{active_session['project']}:{active_session['sub_project']}" if active_session['sub_project'] else active_session['project']
+    tasks_display = " [" + ", ".join(active_session['tasks']) + "]" if active_session['tasks'] else ""
+    
+    click.echo(f"Active session: {project_display}{tasks_display}")
+    click.echo(f"Started: {active_session['start_time'].strftime('%Y-%m-%d %H:%M:%S')}")
+    click.echo(f"Elapsed: {format_duration(active_session['elapsed'])}")
+    click.echo(f"Directory: {active_session['directory']}")
 
 @cli.command()
 @click.option('--today', is_flag=True, help='Show today\'s entries')
