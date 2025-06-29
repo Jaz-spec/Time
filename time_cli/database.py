@@ -179,3 +179,59 @@ class TimeTrackDB:
                 })
             
             return entries
+    
+    def save_directory_mapping(self, directory_path, project_name, auto_detected=True, detection_method=None):
+        """Save directory to project mapping"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO directory_mappings 
+                (directory_path, project_name, auto_detected, detection_method)
+                VALUES (?, ?, ?, ?)
+            ''', (str(directory_path), project_name, auto_detected, detection_method))
+            conn.commit()
+            return cursor.lastrowid
+    
+    def get_directory_mapping(self, directory_path):
+        """Get project mapping for a directory"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT project_name, auto_detected, detection_method
+                FROM directory_mappings
+                WHERE directory_path = ?
+            ''', (str(directory_path),))
+            row = cursor.fetchone()
+            
+            if row:
+                project_name, auto_detected, detection_method = row
+                return {
+                    'project_name': project_name,
+                    'auto_detected': bool(auto_detected),
+                    'detection_method': detection_method
+                }
+            return None
+    
+    def list_directory_mappings(self):
+        """List all directory mappings"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT directory_path, project_name, auto_detected, detection_method, created_at
+                FROM directory_mappings
+                ORDER BY created_at DESC
+            ''')
+            rows = cursor.fetchall()
+            
+            mappings = []
+            for row in rows:
+                directory_path, project_name, auto_detected, detection_method, created_at = row
+                mappings.append({
+                    'directory_path': directory_path,
+                    'project_name': project_name,
+                    'auto_detected': bool(auto_detected),
+                    'detection_method': detection_method,
+                    'created_at': created_at
+                })
+            
+            return mappings

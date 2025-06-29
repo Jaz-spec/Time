@@ -34,7 +34,16 @@ def start(args):
     
     # If no project specified, auto-detect from directory
     if not project:
-        project = detect_project_from_directory()
+        project, detection_method = detect_project_from_directory(db)
+        
+        # Save auto-detected mapping if it's not already stored
+        if detection_method != 'stored_mapping':
+            db.save_directory_mapping(
+                directory_path=current_dir,
+                project_name=project,
+                auto_detected=True,
+                detection_method=detection_method
+            )
     
     # Start the timer
     session_id = db.start_timer(project, sub_project, tasks, current_dir)
@@ -90,6 +99,23 @@ def status():
     click.echo(f"Started: {active_session['start_time'].strftime('%Y-%m-%d %H:%M:%S')}")
     click.echo(f"Elapsed: {format_duration(active_session['elapsed'])}")
     click.echo(f"Directory: {active_session['directory']}")
+
+@cli.command()
+@click.argument('project_name')
+def link(project_name):
+    """Link current directory to a project name"""
+    db = TimeTrackDB()
+    current_dir = Path.cwd()
+    
+    # Save the manual mapping
+    db.save_directory_mapping(
+        directory_path=current_dir,
+        project_name=project_name,
+        auto_detected=False,
+        detection_method='manual'
+    )
+    
+    click.echo(f"Linked directory '{current_dir}' to project '{project_name}'")
 
 @cli.command()
 @click.option('--today', is_flag=True, help='Show today\'s entries')
