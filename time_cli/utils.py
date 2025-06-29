@@ -4,6 +4,10 @@ from pathlib import Path
 from subprocess import run, PIPE
 from datetime import datetime, timedelta
 from collections import defaultdict
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
+from rich import box
 
 def detect_project_from_directory(db=None):
     """Detect project name from current directory"""
@@ -105,23 +109,25 @@ def generate_report_summary(entries):
     }
 
 def format_report(entries, summary, show_details=True):
-    """Format report output"""
-    lines = []
+    """Format report output using Rich formatting"""
+    console = Console()
     
     # Header
-    lines.append("Time Tracking Report")
-    lines.append("=" * 50)
-    lines.append("")
+    console.print("\n[bold blue]Time Tracking Report[/bold blue]", style="bold")
+    console.print("=" * 50, style="dim")
     
     # Summary
-    lines.append(f"Total entries: {summary['total_entries']}")
-    lines.append(f"Total time: {format_duration(summary['total_duration'])}")
-    lines.append("")
+    console.print(f"\n[green]Total entries:[/green] {summary['total_entries']}")
+    console.print(f"[green]Total time:[/green] [bold]{format_duration(summary['total_duration'])}[/bold]")
     
     # Project breakdown
     if summary['projects']:
-        lines.append("Project Breakdown:")
-        lines.append("-" * 30)
+        console.print("\n[bold cyan]Project Breakdown:[/bold cyan]")
+        
+        project_table = Table(box=box.SIMPLE_HEAD)
+        project_table.add_column("Project", style="cyan", no_wrap=True)
+        project_table.add_column("Duration", style="green", justify="right")
+        project_table.add_column("Entries", style="yellow", justify="center")
         
         # Sort projects by duration (descending)
         sorted_projects = sorted(
@@ -132,37 +138,50 @@ def format_report(entries, summary, show_details=True):
         
         for project, data in sorted_projects:
             duration_str = format_duration(data['duration'])
-            lines.append(f"  {project}: {duration_str} ({data['entries']} entries)")
+            project_table.add_row(project, duration_str, str(data['entries']))
             
             # Sub-projects
             if data['sub_projects']:
                 for sub_project, sub_duration in data['sub_projects'].items():
                     sub_duration_str = format_duration(sub_duration)
-                    lines.append(f"    └─ {sub_project}: {sub_duration_str}")
-        lines.append("")
+                    project_table.add_row(f"  └─ {sub_project}", sub_duration_str, "", style="dim")
+        
+        console.print(project_table)
     
     # Daily breakdown
-    if summary['daily_totals'] and len(summary['daily_totals']) <= 31:  # Only show if reasonable number of days
-        lines.append("Daily Breakdown:")
-        lines.append("-" * 30)
+    if summary['daily_totals'] and len(summary['daily_totals']) <= 31:
+        console.print("\n[bold cyan]Daily Breakdown:[/bold cyan]")
+        
+        daily_table = Table(box=box.SIMPLE_HEAD)
+        daily_table.add_column("Date", style="cyan")
+        daily_table.add_column("Duration", style="green", justify="right")
         
         sorted_days = sorted(summary['daily_totals'].items())
         for date, duration in sorted_days:
             duration_str = format_duration(duration)
-            lines.append(f"  {date}: {duration_str}")
-        lines.append("")
+            daily_table.add_row(date, duration_str)
+        
+        console.print(daily_table)
     
     # Detailed entries (optional)
     if show_details and entries:
-        lines.append("Detailed Entries:")
-        lines.append("-" * 30)
+        console.print("\n[bold cyan]Detailed Entries:[/bold cyan]")
+        
+        entries_table = Table(box=box.SIMPLE_HEAD)
+        entries_table.add_column("Date & Time", style="cyan")
+        entries_table.add_column("Project", style="magenta")
+        entries_table.add_column("Tasks", style="yellow")
+        entries_table.add_column("Duration", style="green", justify="right")
         
         for entry in entries:
             project_display = f"{entry['project']}:{entry['sub_project']}" if entry['sub_project'] else entry['project']
-            tasks_display = f" [{', '.join(entry['tasks'])}]" if entry['tasks'] else ""
+            tasks_display = ', '.join(entry['tasks']) if entry['tasks'] else ""
             duration_str = format_duration(entry['duration'] or 0)
             date_str = entry['start_time'].strftime('%Y-%m-%d %H:%M')
             
-            lines.append(f"  {date_str} | {project_display}{tasks_display} | {duration_str}")
+            entries_table.add_row(date_str, project_display, tasks_display, duration_str)
+        
+        console.print(entries_table)
     
-    return "\n".join(lines)
+    # Return empty string since Rich handles the output directly
+    return ""
