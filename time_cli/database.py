@@ -132,7 +132,7 @@ class TimeTrackDB:
             query = '''
                 SELECT id, project, sub_project, tasks, start_time, end_time, duration, directory
                 FROM time_entries
-                WHERE 1=1
+                WHERE end_time IS NOT NULL
             '''
             params = []
             
@@ -147,12 +147,18 @@ class TimeTrackDB:
                     query += f' AND sub_project IN ({sub_project_placeholders})'
                     params.extend(filters['sub_projects'])
                 
+                if filters.get('tasks'):
+                    # Filter by tasks using JSON contains check
+                    for task in filters['tasks']:
+                        query += ' AND (tasks LIKE ? OR tasks LIKE ? OR tasks LIKE ?)'
+                        params.extend([f'["{task}"]', f'"{task}",', f',"{task}"'])
+                
                 if filters.get('from_date'):
-                    query += ' AND start_time >= ?'
+                    query += ' AND DATE(start_time) >= ?'
                     params.append(filters['from_date'])
                 
                 if filters.get('to_date'):
-                    query += ' AND start_time <= ?'
+                    query += ' AND DATE(start_time) <= ?'
                     params.append(filters['to_date'])
             
             query += ' ORDER BY start_time DESC'

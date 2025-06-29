@@ -2,7 +2,7 @@ import click
 import os
 from pathlib import Path
 from .database import TimeTrackDB
-from .utils import detect_project_from_directory, format_duration
+from .utils import detect_project_from_directory, format_duration, get_date_range, generate_report_summary, format_report
 
 @click.group()
 def cli():
@@ -126,9 +126,49 @@ def link(project_name):
 @click.option('--project', multiple=True, help='Filter by project(s)')
 @click.option('--task', multiple=True, help='Filter by task/label(s)')
 @click.option('--label', multiple=True, help='Alias for --task')
-def report(today, week, month, from_date, to_date, project, task, label):
+@click.option('--summary', is_flag=True, help='Show only summary without detailed entries')
+def report(today, week, month, from_date, to_date, project, task, label, summary):
     """Generate time reports with flexible filtering"""
-    click.echo("Report (placeholder)")
+    db = TimeTrackDB()
+    
+    # Build filters
+    filters = {}
+    
+    # Date filtering
+    if today:
+        filters['from_date'], filters['to_date'] = get_date_range('today')
+    elif week:
+        filters['from_date'], filters['to_date'] = get_date_range('week')
+    elif month:
+        filters['from_date'], filters['to_date'] = get_date_range('month')
+    elif from_date or to_date:
+        if from_date:
+            filters['from_date'] = from_date
+        if to_date:
+            filters['to_date'] = to_date
+    
+    # Project filtering
+    if project:
+        filters['projects'] = list(project)
+    
+    # Task filtering (combine --task and --label)
+    all_tasks = list(task) + list(label)
+    if all_tasks:
+        filters['tasks'] = all_tasks
+    
+    # Get entries
+    entries = db.get_time_entries(filters)
+    
+    if not entries:
+        click.echo("No time entries found matching the specified criteria.")
+        return
+    
+    # Generate summary and format report
+    report_summary = generate_report_summary(entries)
+    show_details = not summary
+    report_output = format_report(entries, report_summary, show_details)
+    
+    click.echo(report_output)
 
 if __name__ == '__main__':
     cli()

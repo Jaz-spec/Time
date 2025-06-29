@@ -10,7 +10,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "tr=time_cli.cli:cli",
+            "timetrack=time_cli.cli:cli",
         ],
     },
     author="Your Name",
