@@ -6,7 +6,7 @@ from typing import List, Optional
 class TimeEntry:
     id: Optional[int]
     project: str
-    tasks: List[str]
+    tags: List[str]
     start_time: datetime
     end_time: Optional[datetime]
     duration: Optional[int]

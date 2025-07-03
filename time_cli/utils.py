@@ -170,16 +170,16 @@ def format_report(entries, summary, show_details=True):
         entries_table = Table(box=box.SIMPLE_HEAD)
         entries_table.add_column("Date & Time", style="cyan")
         entries_table.add_column("Project", style="magenta")
-        entries_table.add_column("Tasks", style="yellow")
+        entries_table.add_column("Tags", style="yellow")
         entries_table.add_column("Duration", style="green", justify="right")
         
         for entry in entries:
             project_display = f"{entry['project']}:{entry['sub_project']}" if entry['sub_project'] else entry['project']
-            tasks_display = ', '.join(entry['tasks']) if entry['tasks'] else ""
+            tags_display = ', '.join(entry['tags']) if entry['tags'] else ""
             duration_str = format_duration(entry['duration'] or 0)
             date_str = entry['start_time'].strftime('%Y-%m-%d %H:%M')
             
-            entries_table.add_row(date_str, project_display, tasks_display, duration_str)
+            entries_table.add_row(date_str, project_display, tags_display, duration_str)
         
         console.print(entries_table)
     

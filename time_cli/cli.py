@@ -15,14 +15,16 @@ def cli():
 @cli.command()
 @click.argument('args', nargs=-1)
 def start(args):
-    """Start timer with optional project and tasks"""
+    """Start timer with optional project and tags"""
     db = TimeTrackDB()
     current_dir = str(Path.cwd())
     
     # Parse arguments
     project = None
     sub_project = None
-    tasks = []
+    tags = []
+    
+    tags.append("in-work")
     
     if args:
         # First argument might be project or project:sub_project
@@ -32,8 +34,11 @@ def start(args):
         else:
             project = first_arg
         
-        # Remaining arguments are tasks
-        tasks = list(args[1:])
+        # Remaining arguments are tags
+        tags = list(args[1:])
+        if "out-work" not in tags:
+            tags.append("in-work")
+
     
     # If no project specified, auto-detect from directory
     if not project:
@@ -49,18 +54,18 @@ def start(args):
             )
     
     # Start the timer
-    session_id = db.start_timer(project, sub_project, tasks, current_dir)
+    session_id = db.start_timer(project, sub_project, tags, current_dir)
     
     # Build Rich output message
     console = Console()
     project_display = f"{project}:{sub_project}" if sub_project else project
-    tasks_display = ", ".join(tasks) if tasks else "No tasks"
+    tags_display = ", ".join(tags) if tags else "No tags"
     
     start_text = Text()
     start_text.append("▶️  Timer started for ", style="green")
     start_text.append(f"{project_display}\n", style="bold magenta")
-    start_text.append("Tasks: ", style="cyan")
-    start_text.append(f"{tasks_display}\n", style="yellow")
+    start_text.append("Tags: ", style="cyan")
+    start_text.append(f"{tags_display}\n", style="yellow")
     start_text.append("Session ID: ", style="cyan")
     start_text.append(f"{session_id}", style="dim")
     
@@ -83,13 +88,13 @@ def stop():
     
     if duration:
         project_display = f"{active_session['project']}:{active_session['sub_project']}" if active_session['sub_project'] else active_session['project']
-        tasks_display = ", ".join(active_session['tasks']) if active_session['tasks'] else "No tasks"
+        tags_display = ", ".join(active_session['tags']) if active_session['tags'] else "No tags"
         
         stop_text = Text()
         stop_text.append("⏹️  Timer stopped for ", style="red")
         stop_text.append(f"{project_display}\n", style="bold magenta")
-        stop_text.append("Tasks: ", style="cyan")
-        stop_text.append(f"{tasks_display}\n", style="yellow")
+        stop_text.append("Tags: ", style="cyan")
+        stop_text.append(f"{tags_display}\n", style="yellow")
         stop_text.append("Duration: ", style="cyan")
         stop_text.append(f"{format_duration(duration)}", style="bold green")
         
@@ -110,13 +115,13 @@ def status():
         return
     
     project_display = f"{active_session['project']}:{active_session['sub_project']}" if active_session['sub_project'] else active_session['project']
-    tasks_display = ", ".join(active_session['tasks']) if active_session['tasks'] else "No tasks"
+    tags_display = ", ".join(active_session['tags']) if active_session['tags'] else "No tags"
     
     status_text = Text()
     status_text.append("Project: ", style="cyan")
     status_text.append(f"{project_display}\n", style="bold magenta")
-    status_text.append("Tasks: ", style="cyan")
-    status_text.append(f"{tasks_display}\n", style="yellow")
+    status_text.append("Tags: ", style="cyan")
+    status_text.append(f"{tags_display}\n", style="yellow")
     status_text.append("Started: ", style="cyan")
     status_text.append(f"{active_session['start_time'].strftime('%Y-%m-%d %H:%M:%S')}\n", style="white")
     status_text.append("Elapsed: ", style="cyan")
@@ -157,10 +162,10 @@ def link(project_name):
 @click.option('--from', 'from_date', help='Start date (YYYY-MM-DD)')
 @click.option('--to', 'to_date', help='End date (YYYY-MM-DD)')
 @click.option('--project', multiple=True, help='Filter by project(s)')
-@click.option('--task', multiple=True, help='Filter by task/label(s)')
-@click.option('--label', multiple=True, help='Alias for --task')
+@click.option('--tag', multiple=True, help='Filter by tag/label(s)')
+@click.option('--label', multiple=True, help='Alias for --tag')
 @click.option('--summary', is_flag=True, help='Show only summary without detailed entries')
-def report(today, week, month, from_date, to_date, project, task, label, summary):
+def report(today, week, month, from_date, to_date, project, tag, label, summary):
     """Generate time reports with flexible filtering"""
     db = TimeTrackDB()
     
@@ -184,10 +189,10 @@ def report(today, week, month, from_date, to_date, project, task, label, summary
     if project:
         filters['projects'] = list(project)
     
-    # Task filtering (combine --task and --label)
-    all_tasks = list(task) + list(label)
-    if all_tasks:
-        filters['tasks'] = all_tasks
+    # Tag filtering (combine --tag and --label)
+    all_tags = list(tag) + list(label)
+    if all_tags:
+        filters['tags'] = all_tags
     
     # Get entries
     entries = db.get_time_entries(filters)

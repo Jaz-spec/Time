@@ -19,7 +19,7 @@ class TimeTrackDB:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     project TEXT NOT NULL,
                     sub_project TEXT,
-                    tasks TEXT,
+                    tags TEXT,
                     start_time TIMESTAMP NOT NULL,
                     end_time TIMESTAMP,
                     duration INTEGER,
@@ -39,14 +39,14 @@ class TimeTrackDB:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-            
+
             conn.commit()
     
     def get_connection(self):
         """Get database connection"""
         return sqlite3.connect(self.db_path)
     
-    def start_timer(self, project, sub_project, tasks, directory):
+    def start_timer(self, project, sub_project, tags, directory):
         """Start a new timer session"""
         # Stop any existing active session
         self.stop_timer()
@@ -54,12 +54,12 @@ class TimeTrackDB:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO time_entries (project, sub_project, tasks, start_time, directory)
+                INSERT INTO time_entries (project, sub_project, tags, start_time, directory)
                 VALUES (?, ?, ?, ?, ?)
             ''', (
                 project,
                 sub_project,
-                json.dumps(tasks) if tasks else None,
+                json.dumps(tags) if tags else None,
                 datetime.now().isoformat(),
                 directory
             ))
@@ -99,7 +99,7 @@ class TimeTrackDB:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id, project, sub_project, tasks, start_time, directory
+                SELECT id, project, sub_project, tags, start_time, directory
                 FROM time_entries 
                 WHERE end_time IS NULL 
                 ORDER BY start_time DESC 
@@ -108,8 +108,8 @@ class TimeTrackDB:
             row = cursor.fetchone()
             
             if row:
-                session_id, project, sub_project, tasks_json, start_time_str, directory = row
-                tasks = json.loads(tasks_json) if tasks_json else []
+                session_id, project, sub_project, tags_json, start_time_str, directory = row
+                tags = json.loads(tags_json) if tags_json else []
                 start_time = datetime.fromisoformat(start_time_str)
                 elapsed = int((datetime.now() - start_time).total_seconds())
                 
@@ -117,7 +117,7 @@ class TimeTrackDB:
                     'id': session_id,
                     'project': project,
                     'sub_project': sub_project,
-                    'tasks': tasks,
+                    'tags': tags,
                     'start_time': start_time,
                     'elapsed': elapsed,
                     'directory': directory
@@ -130,7 +130,7 @@ class TimeTrackDB:
             cursor = conn.cursor()
             
             query = '''
-                SELECT id, project, sub_project, tasks, start_time, end_time, duration, directory
+                SELECT id, project, sub_project, tags, start_time, end_time, duration, directory
                 FROM time_entries
                 WHERE end_time IS NOT NULL
             '''
@@ -147,11 +147,11 @@ class TimeTrackDB:
                     query += f' AND sub_project IN ({sub_project_placeholders})'
                     params.extend(filters['sub_projects'])
                 
-                if filters.get('tasks'):
-                    # Filter by tasks using JSON contains check
-                    for task in filters['tasks']:
-                        query += ' AND (tasks LIKE ? OR tasks LIKE ? OR tasks LIKE ?)'
-                        params.extend([f'["{task}"]', f'"{task}",', f',"{task}"'])
+                if filters.get('tags'):
+                    # Filter by tags using JSON contains check
+                    for tag in filters['tags']:
+                        query += ' AND (tags LIKE ? OR tags LIKE ? OR tags LIKE ?)'
+                        params.extend([f'["{tag}"]', f'"{tag}",', f',"{tag}"'])
                 
                 if filters.get('from_date'):
                     query += ' AND DATE(start_time) >= ?'
@@ -168,8 +168,8 @@ class TimeTrackDB:
             
             entries = []
             for row in rows:
-                entry_id, project, sub_project, tasks_json, start_time_str, end_time_str, duration, directory = row
-                tasks = json.loads(tasks_json) if tasks_json else []
+                entry_id, project, sub_project, tags_json, start_time_str, end_time_str, duration, directory = row
+                tags = json.loads(tags_json) if tags_json else []
                 start_time = datetime.fromisoformat(start_time_str)
                 end_time = datetime.fromisoformat(end_time_str) if end_time_str else None
                 
@@ -177,7 +177,7 @@ class TimeTrackDB:
                     'id': entry_id,
                     'project': project,
                     'sub_project': sub_project,
-                    'tasks': tasks,
+                    'tags': tags,
                     'start_time': start_time,
                     'end_time': end_time,
                     'duration': duration,

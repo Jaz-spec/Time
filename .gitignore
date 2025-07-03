@@ -1,2 +1,4 @@
 .claude
 __pycache__
+chat_history_summary.md
+.env
