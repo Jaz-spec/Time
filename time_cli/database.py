@@ -242,9 +242,60 @@ class TimeTrackDB:
             
             return mappings
     
-    def get_entry_by_id(self, id):
-        """Get a time entry by Id"""
+    def get_entry_by_id(self, entry_id):
+        """Get a time entry by its ID."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute()
-        return
+            cursor.execute(
+                "SELECT id, project, sub_project, tags, start_time, end_time, duration, directory FROM time_entries WHERE id = ?",
+                (entry_id,),
+            )
+            row = cursor.fetchone()
+
+            if row:
+                entry_id, project, sub_project, tags_json, start_time_str, end_time_str, duration, directory = row
+                tags = json.loads(tags_json) if tags_json else []
+                start_time = datetime.fromisoformat(start_time_str)
+                end_time = datetime.fromisoformat(end_time_str) if end_time_str else None
+
+                return {
+                    "id": entry_id,
+                    "project": project,
+                    "sub_project": sub_project,
+                    "tags": tags,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "duration": duration,
+                    "directory": directory,
+                }
+        return None
+
+    def update_time_entry(self, entry_id, updates):
+        """Update a time entry with new values."""
+        if not updates:
+            return False
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            set_clauses = []
+            params = []
+
+            for key, value in updates.items():
+                if key == "tags":
+                    set_clauses.append("tags = ?")
+                    params.append(json.dumps(value))
+                else:
+                    set_clauses.append(f"{key} = ?")
+                    params.append(value)
+
+            if not set_clauses:
+                return False
+
+            query = f"UPDATE time_entries SET {', '.join(set_clauses)} WHERE id = ?"
+            params.append(entry_id)
+
+            cursor.execute(query, tuple(params))
+            conn.commit()
+
+            return cursor.rowcount > 0
