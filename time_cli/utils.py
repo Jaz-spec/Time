@@ -168,6 +168,7 @@ def format_report(entries, summary, show_details=True):
         console.print("\n[bold cyan]Detailed Entries:[/bold cyan]")
         
         entries_table = Table(box=box.SIMPLE_HEAD)
+        entries_table.add_column("ID", style="cyan")
         entries_table.add_column("Date & Time", style="cyan")
         entries_table.add_column("Project", style="magenta")
         entries_table.add_column("Tags", style="yellow")
@@ -179,7 +180,7 @@ def format_report(entries, summary, show_details=True):
             duration_str = format_duration(entry['duration'] or 0)
             date_str = entry['start_time'].strftime('%Y-%m-%d %H:%M')
             
-            entries_table.add_row(date_str, project_display, tags_display, duration_str)
+            entries_table.add_row(str(entry['id']), date_str, project_display, tags_display, duration_str)
         
         console.print(entries_table)
     

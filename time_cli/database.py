@@ -241,3 +241,10 @@ class TimeTrackDB:
                 })
             
             return mappings
+    
+    def get_entry_by_id(self, id):
+        """Get a time entry by Id"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute()
+        return

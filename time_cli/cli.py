@@ -206,5 +206,67 @@ def report(today, week, month, from_date, to_date, project, tag, label, summary)
     show_details = not summary
     format_report(entries, report_summary, show_details)
 
+@cli.command()
+@click.argument('entry_id', type=int)
+def edit(entry_id):
+    """Edit a specific time entry by its ID."""
+    db = TimeTrackDB()
+    console = Console()
+
+    # Fetch the entry to be edited
+    entry = db.get_entry_by_id(entry_id)
+    if not entry:
+        console.print(f"[red]Error: No time entry found with ID {entry_id}[/red]")
+        return
+
+    # Display current entry details
+    console.print(Panel(
+        f"[cyan]Editing Entry ID:[/cyan] [bold]{entry['id']}[/bold]\n"
+        f"[cyan]Project:[/cyan] {entry['project']}\n"
+        f"[cyan]Sub-project:[/cyan] {entry['sub_project'] or 'N/A'}\n"
+        f"[cyan]Tags:[/cyan] {', '.join(entry['tags']) if entry['tags'] else 'N/A'}",
+        title="Current Entry Details",
+        border_style="yellow"
+    ))
+
+    # Prompt for new values
+    new_project = click.prompt(
+        "New project (leave blank to keep)",
+        default=entry['project'],
+        show_default=False
+    )
+    new_sub_project = click.prompt(
+        "New sub-project (leave blank to keep, 'none' to remove)",
+        default=entry['sub_project'] or '',
+        show_default=False
+    )
+    new_tags_str = click.prompt(
+        "New tags (comma-separated, leave blank to keep)",
+        default=', '.join(entry['tags']),
+        show_default=False
+    )
+
+    # Prepare updates
+    updates = {}
+    if new_project != entry['project']:
+        updates['project'] = new_project
+    
+    if new_sub_project != (entry['sub_project'] or ''):
+        updates['sub_project'] = new_sub_project if new_sub_project.lower() != 'none' else None
+
+    new_tags = [tag.strip() for tag in new_tags_str.split(',') if tag.strip()]
+    if set(new_tags) != set(entry['tags']):
+        updates['tags'] = new_tags
+
+    if not updates:
+        console.print("[yellow]No changes made.[/yellow]")
+        return
+
+    # Update the database
+    if db.update_time_entry(entry_id, updates):
+        console.print(f"[green]Successfully updated time entry {entry_id}.[/green]")
+    else:
+        console.print(f"[red]Error: Failed to update time entry {entry_id}.[/red]")
+
 if __name__ == '__main__':
     cli()
