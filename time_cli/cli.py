@@ -2,7 +2,7 @@ import click
 import os
 from pathlib import Path
 from .database import TimeTrackDB
-from .utils import detect_project_from_directory, format_duration, get_date_range, generate_report_summary, format_report
+from .utils import detect_project_from_directory, format_duration, get_date_range, generate_report_summary, format_report, parse_duration_input
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -245,6 +245,12 @@ def edit(entry_id):
         default=', '.join(entry['tags']),
         show_default=False
     )
+    current_duration_display = format_duration(entry['duration']) if entry['duration'] else 'N/A'
+    new_duration_str = click.prompt(
+        "New duration (format: 1h30m or 90m or 5400s, leave blank to keep)",
+        default=current_duration_display,
+        show_default=False
+    )
 
     # Prepare updates
     updates = {}
@@ -257,6 +263,18 @@ def edit(entry_id):
     new_tags = [tag.strip() for tag in new_tags_str.split(',') if tag.strip()]
     if set(new_tags) != set(entry['tags']):
         updates['tags'] = new_tags
+
+    if new_duration_str.strip() and new_duration_str != current_duration_display:
+        try:
+            new_duration = parse_duration_input(new_duration_str)
+            # Calculate new end_time based on start_time and new duration
+            from datetime import timedelta
+            new_end_time = entry['start_time'] + timedelta(seconds=new_duration)
+            updates['duration'] = new_duration
+            updates['end_time'] = new_end_time.isoformat()
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            return
 
     if not updates:
         console.print("[yellow]No changes made.[/yellow]")
