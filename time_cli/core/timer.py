@@ -59,6 +59,18 @@ class TimerService:
         """Stop current timer session and return duration."""
         return self.time_repo.stop_active()
     
+    def pause_timer(self) -> Optional[int]:
+        """Pause current timer session and return elapsed duration."""
+        return self.time_repo.pause_active()
+    
+    def resume_timer(self) -> Optional[int]:
+        """Resume paused timer session and return entry ID."""
+        return self.time_repo.resume_paused()
+    
+    def get_paused_session(self) -> Optional[TimeEntry]:
+        """Get currently paused timer session."""
+        return self.time_repo.get_paused()
+    
     def get_active_session(self) -> Optional[TimeEntry]:
         """Get currently active timer session with elapsed time."""
         entry = self.time_repo.get_active()

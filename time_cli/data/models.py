@@ -13,12 +13,19 @@ class TimeEntry:
     end_time: Optional[datetime]
     duration: Optional[int]  # seconds
     directory: str
+    status: str = 'active'  # 'active', 'paused', 'completed'
+    paused_duration: int = 0  # seconds spent paused
     created_at: Optional[datetime] = None
     
     @property
     def is_active(self) -> bool:
         """Check if this entry is currently active (no end time)."""
-        return self.end_time is None
+        return self.end_time is None and self.status == 'active'
+    
+    @property
+    def is_paused(self) -> bool:
+        """Check if this entry is currently paused."""
+        return self.status == 'paused'
     
     @property
     def project_display(self) -> str:

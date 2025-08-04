@@ -41,6 +41,38 @@ class Formatters:
         return Panel(stop_text, title="Timer Stopped", border_style="red")
     
     @staticmethod
+    def format_timer_paused(entry: TimeEntry, duration: int) -> Panel:
+        """Format timer paused message."""
+        project_display = entry.project_display
+        tags_display = ", ".join(entry.tags) if entry.tags else "No tags"
+        
+        pause_text = Text()
+        pause_text.append("⏸️  Timer paused for ", style="yellow")
+        pause_text.append(f"{project_display}\n", style="bold magenta")
+        pause_text.append("Tags: ", style="cyan")
+        pause_text.append(f"{tags_display}\n", style="yellow")
+        pause_text.append("Elapsed: ", style="cyan")
+        pause_text.append(f"{format_duration(duration)}", style="bold green")
+        
+        return Panel(pause_text, title="Timer Paused", border_style="yellow")
+    
+    @staticmethod
+    def format_timer_resumed(entry: TimeEntry) -> Panel:
+        """Format timer resumed message."""
+        project_display = entry.project_display
+        tags_display = ", ".join(entry.tags) if entry.tags else "No tags"
+        
+        resume_text = Text()
+        resume_text.append("▶️  Timer resumed for ", style="green")
+        resume_text.append(f"{project_display}\n", style="bold magenta")
+        resume_text.append("Tags: ", style="cyan")
+        resume_text.append(f"{tags_display}\n", style="yellow")
+        resume_text.append("Session ID: ", style="cyan")
+        resume_text.append(f"{entry.id}", style="dim")
+        
+        return Panel(resume_text, title="Timer Resumed", border_style="green")
+    
+    @staticmethod
     def format_active_session(entry: TimeEntry) -> Panel:
         """Format active session status."""
         project_display = entry.project_display

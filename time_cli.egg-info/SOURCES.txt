@@ -14,7 +14,9 @@ time_cli.egg-info/top_level.txt
 time_cli/commands/__init__.py
 time_cli/commands/edit.py
 time_cli/commands/link.py
+time_cli/commands/pause.py
 time_cli/commands/report.py
+time_cli/commands/resume.py
 time_cli/commands/start.py
 time_cli/commands/status.py
 time_cli/commands/stop.py

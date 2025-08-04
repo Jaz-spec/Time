@@ -27,9 +27,19 @@ class Database:
                     end_time TIMESTAMP,
                     duration INTEGER,
                     directory TEXT NOT NULL,
+                    status TEXT DEFAULT 'active',
+                    paused_duration INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            
+            # Add status and paused_duration columns if they don't exist (for existing databases)
+            try:
+                conn.execute('ALTER TABLE time_entries ADD COLUMN status TEXT DEFAULT "active"')
+                conn.execute('ALTER TABLE time_entries ADD COLUMN paused_duration INTEGER DEFAULT 0')
+            except sqlite3.OperationalError:
+                # Columns already exist
+                pass
             
             # Directory mappings table
             conn.execute('''
