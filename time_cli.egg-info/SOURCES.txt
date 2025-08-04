@@ -1,10 +1,4 @@
 setup.py
-time_cli/__init__.py
-time_cli/cli.py
-time_cli/database.py
-time_cli/main.py
-time_cli/models.py
-time_cli/utils.py
 time_cli.egg-info/PKG-INFO
 time_cli.egg-info/SOURCES.txt
 time_cli.egg-info/dependency_links.txt
