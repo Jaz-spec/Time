@@ -11,20 +11,21 @@ class TimeEntryRepository:
     def __init__(self, db: Database):
         self.db = db
     
-    def create(self, project: str, sub_project: Optional[str], tags: List[str], directory: str) -> int:
+    def create(self, project: str, sub_project: Optional[str], tags: List[str], directory: str, expected_duration: Optional[int] = None) -> int:
         """Create a new time entry and return its ID."""
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO time_entries (project, sub_project, tags, start_time, directory, status)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO time_entries (project, sub_project, tags, start_time, directory, status, expected_duration)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (
                 project,
                 sub_project,
                 json.dumps(tags) if tags else None,
                 datetime.now().isoformat(),
                 directory,
-                'active'
+                'active',
+                expected_duration
             ))
             conn.commit()
             return cursor.lastrowid
@@ -34,7 +35,7 @@ class TimeEntryRepository:
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT id, project, sub_project, tags, start_time, end_time, duration, directory, status, paused_duration FROM time_entries WHERE id = ?",
+                "SELECT id, project, sub_project, tags, start_time, end_time, duration, directory, status, paused_duration, expected_duration FROM time_entries WHERE id = ?",
                 (entry_id,),
             )
             row = cursor.fetchone()
@@ -48,7 +49,7 @@ class TimeEntryRepository:
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id, project, sub_project, tags, start_time, end_time, duration, directory, status, paused_duration
+                SELECT id, project, sub_project, tags, start_time, end_time, duration, directory, status, paused_duration, expected_duration
                 FROM time_entries 
                 WHERE end_time IS NULL AND status = 'active'
                 ORDER BY start_time DESC 
@@ -65,7 +66,7 @@ class TimeEntryRepository:
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id, project, sub_project, tags, start_time, end_time, duration, directory, status, paused_duration
+                SELECT id, project, sub_project, tags, start_time, end_time, duration, directory, status, paused_duration, expected_duration
                 FROM time_entries 
                 WHERE status = 'paused'
                 ORDER BY start_time DESC 
@@ -183,7 +184,7 @@ class TimeEntryRepository:
             cursor = conn.cursor()
             
             query = '''
-                SELECT id, project, sub_project, tags, start_time, end_time, duration, directory, status, paused_duration
+                SELECT id, project, sub_project, tags, start_time, end_time, duration, directory, status, paused_duration, expected_duration
                 FROM time_entries
                 WHERE end_time IS NOT NULL
             '''
@@ -222,7 +223,7 @@ class TimeEntryRepository:
     
     def _row_to_model(self, row) -> TimeEntry:
         """Convert database row to TimeEntry model."""
-        entry_id, project, sub_project, tags_json, start_time_str, end_time_str, duration, directory, status, paused_duration = row
+        entry_id, project, sub_project, tags_json, start_time_str, end_time_str, duration, directory, status, paused_duration, expected_duration = row
         tags = json.loads(tags_json) if tags_json else []
         start_time = datetime.fromisoformat(start_time_str)
         end_time = datetime.fromisoformat(end_time_str) if end_time_str else None
@@ -237,5 +238,6 @@ class TimeEntryRepository:
             duration=duration,
             directory=directory,
             status=status or 'active',
-            paused_duration=paused_duration or 0
+            paused_duration=paused_duration or 0,
+            expected_duration=expected_duration
         )

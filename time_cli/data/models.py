@@ -15,6 +15,7 @@ class TimeEntry:
     directory: str
     status: str = 'active'  # 'active', 'paused', 'completed'
     paused_duration: int = 0  # seconds spent paused
+    expected_duration: Optional[int] = None  # expected duration in seconds
     created_at: Optional[datetime] = None
     
     @property

@@ -3,6 +3,7 @@ from pathlib import Path
 from rich.console import Console
 
 from ..core.timer import TimerService
+from ..core.duration import parse_duration_input
 from ..data.database import Database
 from ..data.repositories.time_entries import TimeEntryRepository
 from ..data.repositories.directory_mappings import DirectoryMappingRepository
@@ -10,7 +11,8 @@ from ..ui.formatters import Formatters
 
 @click.command()
 @click.argument('args', nargs=-1)
-def start(args):
+@click.option('--alert', help='Alert after specified duration (e.g., "1h 20m")')
+def start(args, alert):
     """Start timer with optional project and tags."""
     console = Console()
     
@@ -24,6 +26,7 @@ def start(args):
     project = None
     sub_project = None
     tags = []
+    expected_duration = None
     
     if args:
         # First argument might be project or project:sub_project
@@ -36,9 +39,17 @@ def start(args):
         # Remaining arguments are tags
         tags = list(args[1:])
     
+    # Parse alert duration if provided
+    if alert:
+        try:
+            expected_duration = parse_duration_input(alert)
+        except ValueError as e:
+            console.print(Formatters.format_error(f"Invalid alert duration: {e}"))
+            return
+    
     try:
         # Start the timer
-        session_id = timer_service.start_timer(project, sub_project, tags)
+        session_id = timer_service.start_timer(project, sub_project, tags, expected_duration)
         
         # Get the created entry for display
         entry = time_repo.get_by_id(session_id)

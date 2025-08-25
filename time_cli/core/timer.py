@@ -8,6 +8,7 @@ from ..data.models import TimeEntry
 from ..config.settings import Settings
 from .project_detection import detect_project_from_directory
 from .duration import parse_duration_input
+from .alerts.daemon import start_alert_daemon, stop_alert_daemon
 from ..utils.validation import sanitize_project_name, sanitize_tags
 
 class TimerService:
@@ -18,7 +19,7 @@ class TimerService:
         self.directory_repo = directory_repo
     
     def start_timer(self, project: Optional[str] = None, sub_project: Optional[str] = None, 
-                   tags: Optional[List[str]] = None) -> int:
+                   tags: Optional[List[str]] = None, expected_duration: Optional[int] = None) -> int:
         """Start a new timer session."""
         # Stop any existing active session
         self.stop_timer()
@@ -48,15 +49,28 @@ class TimerService:
             project = sanitize_project_name(project)
         
         # Create the timer entry
-        return self.time_repo.create(
+        entry_id = self.time_repo.create(
             project=project,
             sub_project=sub_project,
             tags=tags,
-            directory=str(Path.cwd())
+            directory=str(Path.cwd()),
+            expected_duration=expected_duration
         )
+        
+        # Start alert daemon if expected duration is set
+        if expected_duration:
+            start_alert_daemon(entry_id, expected_duration)
+        
+        return entry_id
     
     def stop_timer(self) -> Optional[int]:
         """Stop current timer session and return duration."""
+        # Get active entry before stopping
+        active = self.get_active_session()
+        if active:
+            # Stop alert daemon if one exists
+            stop_alert_daemon(active.id)
+        
         return self.time_repo.stop_active()
     
     def pause_timer(self) -> Optional[int]:

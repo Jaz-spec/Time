@@ -19,3 +19,8 @@ class Paths:
     def get_config_file_path() -> Path:
         """Get the path for .timetrack config file in current directory."""
         return Path.cwd() / '.timetrack'
+    
+    @staticmethod
+    def get_alert_pid_file(entry_id: int) -> Path:
+        """Get the PID file path for alert daemon."""
+        return Paths.get_app_dir() / f'alert_{entry_id}.pid'

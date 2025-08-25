@@ -37,6 +37,7 @@ class Database:
             try:
                 conn.execute('ALTER TABLE time_entries ADD COLUMN status TEXT DEFAULT "active"')
                 conn.execute('ALTER TABLE time_entries ADD COLUMN paused_duration INTEGER DEFAULT 0')
+                conn.execute('ALTER TABLE time_entries ADD COLUMN expected_duration INTEGER')
             except sqlite3.OperationalError:
                 # Columns already exist
                 pass
