@@ -34,13 +34,9 @@ class Database:
             ''')
             
             # Add status and paused_duration columns if they don't exist (for existing databases)
-            try:
-                conn.execute('ALTER TABLE time_entries ADD COLUMN status TEXT DEFAULT "active"')
-                conn.execute('ALTER TABLE time_entries ADD COLUMN paused_duration INTEGER DEFAULT 0')
-                conn.execute('ALTER TABLE time_entries ADD COLUMN expected_duration INTEGER')
-            except sqlite3.OperationalError:
-                # Columns already exist
-                pass
+            self._add_column_if_not_exists(conn, 'time_entries', 'status', 'TEXT DEFAULT "active"')
+            self._add_column_if_not_exists(conn, 'time_entries', 'paused_duration', 'INTEGER DEFAULT 0')
+            self._add_column_if_not_exists(conn, 'time_entries', 'expected_duration', 'INTEGER')
             
             # Directory mappings table
             conn.execute('''
@@ -55,6 +51,19 @@ class Database:
             ''')
 
             conn.commit()
+    
+    def _add_column_if_not_exists(self, conn, table_name: str, column_name: str, column_definition: str):
+        """Add a column to a table if it doesn't already exist."""
+        cursor = conn.cursor()
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = [column[1] for column in cursor.fetchall()]
+        
+        if column_name not in columns:
+            try:
+                conn.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}')
+            except sqlite3.OperationalError as e:
+                # If still fails, print the error for debugging
+                print(f"Failed to add column {column_name}: {e}")
     
     @contextmanager
     def get_connection(self):
