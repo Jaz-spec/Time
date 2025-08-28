@@ -8,6 +8,7 @@ from .commands.status import status
 from .commands.edit import edit
 from .commands.link import link
 from .commands.report import report
+from .commands.delete import delete
 
 @click.group()
 def cli():
@@ -23,6 +24,7 @@ cli.add_command(status)
 cli.add_command(edit)
 cli.add_command(link)
 cli.add_command(report)
+cli.add_command(delete)
 
 if __name__ == '__main__':
     cli()
